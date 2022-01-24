@@ -6,3 +6,19 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# 命令行库
+clap = {version = "3.0", features = ["derive"]}
+# 跟踪打印panic日志
+color-eyre = "0.5"
+# 用于音频的输入输出库
+cpal = "0.13.4"
+# 数字音频信号处理
+dasp = {version = "0.11.0", features = ["signal", "interpolate", "interpolate-linear"]}
+# rust的sqlite库
+rusqlite = "0.26.3"
+# rust 的日志时间库
+chrono = "0.4.19"
+# 一个简单的Ctrl-C信号包装库
+ctrlc = "3.2.1"
+
+
