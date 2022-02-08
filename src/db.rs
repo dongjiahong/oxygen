@@ -9,10 +9,10 @@ pub struct Db(Connection);
 pub struct ClipMeta {
     pub id: usize,
     pub name: String,
-    pub data: DateTime<Utc>,
+    pub date: DateTime<Utc>,
 }
 
-fn encode(samples: &[f3]) -> vec<u8> {
+fn encode(samples: &[f32]) -> Vec<u8> {
     let mut data = Vec::with_capacity(samples.len() * 4);
     for sample in samples {
         data.extend_from_slice(&sample.to_be_bytes());
@@ -32,8 +32,8 @@ fn decode(bytes: &[u8]) -> Vec<f32> {
 impl Db {
     pub fn open() -> Result<Db> {
         let connection = Connection::open("oxygen.sqlite")?;
-        connection.pragma_update(Node, "page_size", 8192)?;
-        connection.pragma_update(Node, "user_version", 1)?;
+        connection.pragma_update(None, "page_size", 8192)?;
+        connection.pragma_update(None, "user_version", 1)?;
 
         connection.execute(
             "
@@ -87,7 +87,7 @@ impl Db {
         })?;
 
         Ok(if let Some(clip) = clip_iter.next() {
-            Some(cilp?)
+            Some(clip?)
         }else {
             None
         })
@@ -99,7 +99,20 @@ impl Db {
             let date: String = row.get(2)?;
 
             Ok(ClipMeta{
+                id: row.get(0)?,
+                name: row.get(1)?,
+                date: date.parse().map_err(|_| {
+                    rusqlite::Error::InvalidColumnType(2, "date".to_string(), Type::Text)
+                })?,
             })
-        })
+        })?;
+
+        Ok(clip_iter.collect::<Result<_, rusqlite::Error>>()?)
+    }
+
+    pub fn delete(&self, name: &str) -> Result<()> {
+        self.0.execute("DELETE FROM clips WHERE name = ?1",[name])?;
+
+        Ok(())
     }
 }
