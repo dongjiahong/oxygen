@@ -2,6 +2,7 @@ use chrono::prelude::*;
 use color_eyre::eyre::{eyre, Result};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use dasp::{interpolate::linear::Linear, signal, Signal};
+use std::sync::mpsc::channel;
 use std::sync::{mpsc::Sender, Arc, Mutex};
 
 /// Raw mono audio data.
@@ -24,7 +25,7 @@ impl AudioClip {
         let mut signal = signal::from_iter(self.samples.iter().copied());
         let a = signal.next();
         let b = signal.next();
-        let interp = Linear::new(a, b);
+        let linear = Linear::new(a, b);
 
         AudioClip {
             id: self.id,
@@ -55,7 +56,7 @@ impl AudioClip {
         };
 
         let clip = Arc::new(Mutex::new(Some(clip)));
-        let clip2 = clip.clone();
+        let clip_2 = clip.clone();
 
         println!("Begin recording...");
         let err_fn = move |err| {
@@ -154,7 +155,7 @@ impl AudioClip {
             }
         }
 
-        let stream = match config.sample_forma() {
+        let stream = match config.sample_format() {
             cpal::SampleFormat::F32 => device.build_output_stream(
                 &config.into(),
                 move |data, _: &_| write_output_data::<f32>(data, channels, &state),

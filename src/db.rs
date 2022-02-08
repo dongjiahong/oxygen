@@ -53,7 +53,7 @@ impl Db {
 
     pub fn save(&self, clip: &mut AudioClip) -> Result<()> {
         self.0.execute(
-            "INSTER OR REPLACE INTO clips (id, name, date, sample_rate, samples) VALUE (?1, ?2, ?3, ?4, ?5)",
+            "INSERT OR REPLACE INTO clips (id, name, date, sample_rate, samples) VALUES (?1, ?2, ?3, ?4, ?5)",
             params![
                 clip.id, 
                 clip.name,
