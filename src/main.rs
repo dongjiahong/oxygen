@@ -1,5 +1,6 @@
 mod audio_clip;
 mod db;
+mod internal_encoding;
 
 use audio_clip::AudioClip;
 use chrono::prelude::*;
@@ -43,7 +44,7 @@ fn main() -> Result<()> {
 
     match args.command {
         Commands::Record { name } => {
-            let name = name.unwrap_or_else(|| Local::now().format("%Y-%m-%d %H:%M:%S").to_string());
+            let name = name.unwrap_or_else(|| Local::now().format("%Y-%m-%d-%H:%M:%S").to_string());
             let mut clip = AudioClip::record(name)?;
             db.save(&mut clip)?;
         }

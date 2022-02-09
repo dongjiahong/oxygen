@@ -21,4 +21,5 @@ chrono = "0.4.19"
 # 一个简单的Ctrl-C信号包装库
 ctrlc = "3.2.1"
 
+audiopus = "0.3.0-rc.0"
 
