@@ -1,5 +1,9 @@
+use std::usize;
+
 use audiopus::{
-    coder::Encoder, Bitrate, Channels, Error as OpusError, ErrorCode as OpusErrorCode, SampleRate,
+    coder::{Decoder, Encoder},
+    packet::Packet,
+    Bitrate, Channels, Error as OpusError, ErrorCode as OpusErrorCode, MutSignals, SampleRate,
 };
 use color_eyre::{eyre::eyre, Result};
 
@@ -83,4 +87,56 @@ pub fn encode_v1(clip: &AudioClip) -> Result<(u32, Vec<u8>)> {
     output.truncate(output_i);
 
     Ok((sample_rate as i32 as u32, output))
+}
+
+pub fn decode_v1(sample_rate: u32, bytes: &[u8]) -> Result<Vec<f32>> {
+    let sample_rate: i32 = sample_rate.try_into()?;
+    let sample_rate = SampleRate::try_from(sample_rate)?;
+    let mut decoder = Decoder::new(sample_rate, Channels::Mono)?;
+
+    let frame_size = (sample_rate as i32 / 1000 * 20) as usize;
+
+    let mut bytes_i = 0;
+    if bytes.len() < 4 {
+        return Err(eyre!("Invalid number of bytes in encoded data"));
+    }
+    let num_samples: usize =
+        u32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]).try_into()?;
+    bytes_i += 4;
+
+    let mut samples = vec![0f32; num_samples + frame_size];
+    let mut samples_i = 0;
+
+    while bytes_i < bytes.len() {
+        let pkt_len: usize = match (bytes.get(bytes_i), bytes.get(bytes_i + 1)) {
+            (Some(&a), Some(&b)) => u16::from_be_bytes([a, b]).into(),
+            _ => {
+                return Err(eyre!("Invalid encoding"));
+            }
+        };
+        bytes_i += 2;
+        if bytes_i + pkt_len > bytes.len() {
+            return Err(eyre!("Invalid encoding"));
+        }
+        if samples_i + frame_size > samples.len() {
+            return Err(eyre!("Invalid encoding"));
+        }
+
+        let actual_frame_size = decoder.decode_float(
+            Some(Packet::try_from(&bytes[bytes_i..bytes_i + pkt_len])?),
+            MutSignals::try_from(&mut samples[samples_i..samples_i + frame_size])?,
+            false,
+        )?;
+
+        if actual_frame_size != frame_size {
+            return Err(eyre!("Invalid frame size"));
+        }
+
+        bytes_i += pkt_len;
+        samples_i += actual_frame_size;
+    }
+
+    samples.truncate(samples_i);
+
+    Ok(samples)
 }
